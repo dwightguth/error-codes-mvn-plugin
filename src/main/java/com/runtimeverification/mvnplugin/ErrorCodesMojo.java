@@ -6,9 +6,11 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
@@ -25,15 +27,25 @@ public class ErrorCodesMojo extends AbstractMojo
 
     public void execute() throws MojoExecutionException
     {
-        getCodesFromKFiles(semanticsDir);
+        getCodesFromKFiles(semanticsDir).forEach(s -> System.out.println(s));
+
     }
 
-    private Collection<File> getCodesFromKFiles(File baseDir) {
+    private Set<String> getCodesFromKFiles(File baseDir) {
         Set<String> codesSet = new HashSet<>();
         Collection<File> kFiles = FileUtils.listFiles(baseDir, new String[]{"k"}, true);
-        Pattern pattern = Pattern.compile("[A-Z]+[0-9]*");
-        kFiles.forEach(f -> {
+        Pattern pattern = Pattern.compile("[A-Z]{2,}[0-9]+");
 
+        kFiles.forEach(f -> {
+            try {
+                Matcher matcher = pattern.matcher(FileUtils.readFileToString(f));
+                while(matcher.find()) {
+                    codesSet.add(matcher.group());
+                }
+            } catch (IOException e) {
+                System.out.println("OOPS!");
+            }
         });
+        return codesSet;
     }
 }
