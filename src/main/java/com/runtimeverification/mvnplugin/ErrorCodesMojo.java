@@ -1,5 +1,9 @@
 package com.runtimeverification.mvnplugin;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.NameFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -21,22 +25,31 @@ public class ErrorCodesMojo extends AbstractMojo
     /**
      * The array contatining the location of the K Files.
      */
-    @Parameter(defaultValue = "${project.basedir}" + "../c-semantics")
+    @Parameter(defaultValue = "${project.basedir}" + "../")
     private File semanticsDir;
 
 
     public void execute() throws MojoExecutionException
     {
-        getCodesFromKFiles(semanticsDir).forEach(s -> System.out.println(s));
+        System.out.println(getCodesFromCSV(semanticsDir).size());
 
     }
 
     private Set<String> getCodesFromKFiles(File baseDir) {
-        Set<String> codesSet = new HashSet<>();
         Collection<File> kFiles = FileUtils.listFiles(baseDir, new String[]{"k"}, true);
-        Pattern pattern = Pattern.compile("[A-Z]{2,}[0-9]+");
+        return getErrorCodesFromFiles(kFiles);
+    }
 
-        kFiles.forEach(f -> {
+    private Set<String> getCodesFromCSV(File baseDir) {
+        Collection<File> csvFiles = FileUtils.listFiles(baseDir, FileFilterUtils.nameFileFilter("Error_Codes.csv"), TrueFileFilter.INSTANCE);
+        return getErrorCodesFromFiles(csvFiles);
+    }
+
+    private Set<String> getErrorCodesFromFiles(Collection<File> files) {
+        Pattern pattern = Pattern.compile("[A-Z]{2,}[0-9]+");
+        Set<String> codesSet = new HashSet<>();
+
+        files.forEach(f -> {
             try {
                 Matcher matcher = pattern.matcher(FileUtils.readFileToString(f));
                 while(matcher.find()) {
