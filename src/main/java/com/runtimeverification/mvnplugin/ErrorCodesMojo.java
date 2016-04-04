@@ -30,7 +30,10 @@ public class ErrorCodesMojo extends AbstractMojo
 
     public void execute() throws MojoExecutionException
     {
-        System.out.println(getCodesFromFiles(semanticsDir).size());
+        Set<String> codesFromKFiles = getCodesFromKFiles(semanticsDir);
+        Set<String> codesFromCSV = getCodesFromCSV(semanticsDir);
+        codesFromCSV.removeAll(codesFromKFiles);
+        System.out.println(codesFromCSV);
 
     }
 
