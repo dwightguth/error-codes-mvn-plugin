@@ -3,6 +3,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.*;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -28,21 +29,25 @@ public class ErrorCodesMojo extends AbstractMojo
     private File semanticsDir;
 
 
-    public void execute() throws MojoExecutionException
+    public void execute() throws MojoExecutionException, MojoFailureException
     {
         Set<String> codesFromKFiles = getCodesFromKFiles(semanticsDir);
         Set<String> codesFromCSV = getCodesFromCSV(semanticsDir);
-        codesFromCSV.removeAll(codesFromKFiles);
-        System.out.println(codesFromCSV);
+        codesFromKFiles.removeAll(codesFromCSV);
+        if (codesFromKFiles.size() > 0) {
+            StringBuffer message = new StringBuffer("");
+            codesFromKFiles.iterator().forEachRemaining(x -> message.append(x + " does not have a CSV entry \n"));
+            throw new MojoFailureException(message.toString());
+        }
 
     }
 
-    private Set<String> getCodesFromKFiles(File baseDir) {
+    private Set<String> getCodesFromKFiles(File baseDir) throws MojoExecutionException{
         Collection<File> kFiles = FileUtils.listFiles(baseDir, new String[]{"k"}, true);
         return getErrorCodesFromFiles(kFiles);
     }
 
-    private Set<String> getCodesFromCSV(File baseDir) {
+    private Set<String> getCodesFromCSV(File baseDir) throws MojoExecutionException{
         Collection<File> csvFiles = FileUtils.listFiles(baseDir,
                 FileFilterUtils.nameFileFilter("Error_Codes.csv"), TrueFileFilter.INSTANCE);
         return getErrorCodesFromFiles(csvFiles);
@@ -57,20 +62,20 @@ public class ErrorCodesMojo extends AbstractMojo
         }).collect(Collectors.toSet());
     }
 
-    private Set<String> getErrorCodesFromFiles(Collection<File> files) {
+    private Set<String> getErrorCodesFromFiles(Collection<File> files) throws MojoExecutionException{
         Pattern pattern = Pattern.compile("[A-Z]{2,}[0-9]+");
         Set<String> codesSet = new HashSet<>();
 
-        files.forEach(f -> {
+        for(File f : files) {
             try {
                 Matcher matcher = pattern.matcher(FileUtils.readFileToString(f));
-                while(matcher.find()) {
+                while (matcher.find()) {
                     codesSet.add(matcher.group());
                 }
             } catch (IOException e) {
-                System.out.println("OOPS!");
+                throw new MojoExecutionException(e.getMessage());
             }
-        });
+        }
         return codesSet;
     }
 }
