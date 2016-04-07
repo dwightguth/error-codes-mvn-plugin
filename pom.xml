@@ -91,9 +91,6 @@
             <groupId>com.runtimeverification.mvnplugin</groupId>
             <artifactId>codescheck-maven-plugin</artifactId>
             <version>0.1</version>
-            <configuration>
-              <number>21</number>
-            </configuration>
           </plugin>
         </plugins>
 
