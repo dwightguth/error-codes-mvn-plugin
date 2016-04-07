@@ -1,8 +1,11 @@
 package com.runtimeverification.mvnplugin;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
-import org.apache.commons.io.filefilter.*;
+import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -11,14 +14,11 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 
 @Mojo(name = "checkCodes")
 public class ErrorCodesMojo extends AbstractMojo {
@@ -30,26 +30,43 @@ public class ErrorCodesMojo extends AbstractMojo {
     private File semanticsDir;
 
 
-    @Parameter(defaultValue = "")
+    @Parameter (defaultValue = "")
     private String ignore;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Set<String> ignoreCodes = new ArrayList<>(Arrays.asList(ignore.split(","))).stream()
-                .map(String::trim).collect(Collectors.toSet());
+        Set<String> ignoreCodes;
+        if(ignore != null) {
+            ignoreCodes = new ArrayList<>(Arrays.asList(ignore.split(","))).stream()
+                    .map(String::trim).collect(Collectors.toSet());
+        } else {
+            ignoreCodes = new HashSet<>();
+        }
         Map<String, String> csvMap = getCodesFromCSV(semanticsDir);
         Set<String> codesFromKFiles = getCodesFromKFiles(semanticsDir);
         Set<String> codesFromExamples = getCodesFromFiles(semanticsDir);
-        Set<String> codesFromCSV = csvMap.keySet();
+        Set<String> codesFromCSV = new HashSet<>(csvMap.keySet());
         codesFromKFiles.removeAll(codesFromCSV);
+        StringBuffer message = new StringBuffer("\n");
         if (codesFromKFiles.size() > 0) {
-            StringBuffer message = new StringBuffer("\n");
             codesFromKFiles.iterator().forEachRemaining(x -> message.append(x + " does not have a CSV entry \n"));
             throw new MojoFailureException(message.toString());
         }
         codesFromCSV.removeAll(codesFromExamples);
+        codesFromCSV.removeAll(ignoreCodes);
        if (codesFromCSV.size() > 0) {
-            StringBuffer message = new StringBuffer("\n");
+            message.setLength(0);
+            message.append("\n");
             codesFromCSV.iterator().forEachRemaining(x -> message.append(x + " does not have corresponding examples\n"));
+            throw new MojoFailureException(message.toString());
+        }
+        message.setLength(0);
+        message.append("\n");
+        csvMap.entrySet().forEach(entry -> {
+            if (!entry.getValue().matches("[A-Z \'].*")) {
+                message.append(entry.getKey() + "'s Description - \"" + entry.getValue() + "\" does not begin with an UpperCase Character.\n");
+            }
+        });
+        if (message.length() > 1) {
             throw new MojoFailureException(message.toString());
         }
     }
@@ -93,17 +110,18 @@ public class ErrorCodesMojo extends AbstractMojo {
 
     private Map<String, String> getCSVMap(Collection<File> files) throws MojoExecutionException{
         Map<String, String> csvMap = new HashMap<>();
-        Pattern pattern = Pattern.compile("(UB|L|IMPL|CV|USP)\\-[A-Z]{2,}[0-9]+.*");
+        Pattern pattern = Pattern.compile("(UB|L|IMPL|CV|USP)\\-[A-Z]{2,}[0-9]+");
+
+
         for (File f : files) {
             try {
-                LineIterator lineIterator = FileUtils.lineIterator(f);
-                while (lineIterator.hasNext()) {
-                    String line = lineIterator.nextLine();
-                    if (pattern.matcher(line).matches()) {
-                        String[] splitArray = line.split(",");
-                        csvMap.put(splitArray[0].split("-")[1], splitArray[1]);
+                CSVParser parser = CSVParser.parse(f, Charset.defaultCharset(), CSVFormat.DEFAULT);
+                parser.forEach(record -> {
+                    String errorCode = record.get(0);
+                    if (pattern.matcher(errorCode).matches()) {
+                        csvMap.put(errorCode.split("-")[1], record.get(1));
                     }
-                }
+                });
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage());
             }
