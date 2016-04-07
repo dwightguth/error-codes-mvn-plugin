@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-@Mojo(name = "sayhi")
+@Mojo(name = "checkCodes")
 public class ErrorCodesMojo extends AbstractMojo {
 
     /**
@@ -34,29 +34,24 @@ public class ErrorCodesMojo extends AbstractMojo {
     private String ignore;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
-        System.out.println(ignore);
         Set<String> ignoreCodes = new ArrayList<>(Arrays.asList(ignore.split(","))).stream()
                 .map(String::trim).collect(Collectors.toSet());
-        System.out.println(ignoreCodes);
-//        Set<String> codesFromKFiles = getCodesFromKFiles(semanticsDir);
-//        Set<String> codesFromCSV = getCodesFromCSV(semanticsDir);
-//        Set<String> codesFromExamples = getCodesFromFiles(semanticsDir);
-////        System.out.println(codesFromKFiles);
-////        System.out.println(codesFromCSV);
-//        codesFromKFiles.removeAll(codesFromCSV);
-//        if (codesFromKFiles.size() > 0) {
-//            StringBuffer message = new StringBuffer("\n");
-//            codesFromKFiles.iterator().forEachRemaining(x -> message.append(x + " does not have a CSV entry \n"));
-//            throw new MojoFailureException(message.toString());
-//        }
-////        codesFromCSV.removeAll(codesFromExamples);
-////       if (codesFromCSV.size() > 0) {
-////            StringBuffer message = new StringBuffer("\n");
-////            codesFromCSV.iterator().forEachRemaining(x -> message.append(x + " does not have corresponding examples\n"));
-////            throw new MojoFailureException(message.toString());
-////        }
-        System.out.println(getCodesFromCSV(semanticsDir).size());
-
+        Map<String, String> csvMap = getCodesFromCSV(semanticsDir);
+        Set<String> codesFromKFiles = getCodesFromKFiles(semanticsDir);
+        Set<String> codesFromExamples = getCodesFromFiles(semanticsDir);
+        Set<String> codesFromCSV = csvMap.keySet();
+        codesFromKFiles.removeAll(codesFromCSV);
+        if (codesFromKFiles.size() > 0) {
+            StringBuffer message = new StringBuffer("\n");
+            codesFromKFiles.iterator().forEachRemaining(x -> message.append(x + " does not have a CSV entry \n"));
+            throw new MojoFailureException(message.toString());
+        }
+        codesFromCSV.removeAll(codesFromExamples);
+       if (codesFromCSV.size() > 0) {
+            StringBuffer message = new StringBuffer("\n");
+            codesFromCSV.iterator().forEachRemaining(x -> message.append(x + " does not have corresponding examples\n"));
+            throw new MojoFailureException(message.toString());
+        }
     }
 
     private Set<String> getCodesFromKFiles(File baseDir) throws MojoExecutionException {
@@ -98,13 +93,13 @@ public class ErrorCodesMojo extends AbstractMojo {
 
     private Map<String, String> getCSVMap(Collection<File> files) throws MojoExecutionException{
         Map<String, String> csvMap = new HashMap<>();
+        Pattern pattern = Pattern.compile("(UB|L|IMPL|CV|USP)\\-[A-Z]{2,}[0-9]+.*");
         for (File f : files) {
             try {
                 LineIterator lineIterator = FileUtils.lineIterator(f);
                 while (lineIterator.hasNext()) {
                     String line = lineIterator.nextLine();
-                    System.out.println(line);
-                    if (Pattern.matches("(UB|L|IMPL|CV|USP)\\-[A-Z]{2,}[0-9]+.*", line)) {
+                    if (pattern.matcher(line).matches()) {
                         String[] splitArray = line.split(",");
                         csvMap.put(splitArray[0].split("-")[1], splitArray[1]);
                     }
