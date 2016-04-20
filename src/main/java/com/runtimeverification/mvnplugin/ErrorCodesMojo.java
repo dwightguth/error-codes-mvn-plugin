@@ -2,6 +2,7 @@ package com.runtimeverification.mvnplugin;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.filefilter.RegexFileFilter;
@@ -30,12 +31,12 @@ public class ErrorCodesMojo extends AbstractMojo {
     private File semanticsDir;
 
 
-    @Parameter (defaultValue = "")
+    @Parameter(defaultValue = "")
     private String ignore;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
         Set<String> ignoreCodes;
-        if(ignore != null) {
+        if (ignore != null) {
             ignoreCodes = new ArrayList<>(Arrays.asList(ignore.split(","))).stream()
                     .map(String::trim).collect(Collectors.toSet());
         } else {
@@ -53,7 +54,7 @@ public class ErrorCodesMojo extends AbstractMojo {
         }
         codesFromCSV.removeAll(codesFromExamples);
         codesFromCSV.removeAll(ignoreCodes);
-       if (codesFromCSV.size() > 0) {
+        if (codesFromCSV.size() > 0) {
             message.setLength(0);
             message.append("\n");
             codesFromCSV.iterator().forEachRemaining(x -> message.append(x + " does not have corresponding examples\n"));
@@ -63,7 +64,8 @@ public class ErrorCodesMojo extends AbstractMojo {
         message.append("\n");
         csvMap.entrySet().forEach(entry -> {
             if (!entry.getValue().matches("[A-Z \'].*")) {
-                message.append(entry.getKey() + "'s Description - \"" + entry.getValue() + "\" does not begin with an UpperCase Character.\n");
+                message.append(entry.getKey() + "'s Description - \"" +
+                        entry.getValue() + "\" does not begin with an UpperCase Character.\n");
             }
         });
         if (message.length() > 1) {
@@ -77,7 +79,7 @@ public class ErrorCodesMojo extends AbstractMojo {
         return getErrorCodesFromFiles(kFiles, pattern);
     }
 
-    private Map<String, String> getCodesFromCSV(File baseDir) throws MojoExecutionException {
+    private Map<String, String> getCodesFromCSV(File baseDir) throws MojoExecutionException, MojoFailureException {
         Collection<File> csvFiles = FileUtils.listFiles(baseDir,
                 FileFilterUtils.nameFileFilter("Error_Codes.csv"), TrueFileFilter.INSTANCE);
 
@@ -108,20 +110,25 @@ public class ErrorCodesMojo extends AbstractMojo {
         return codesSet;
     }
 
-    private Map<String, String> getCSVMap(Collection<File> files) throws MojoExecutionException{
+    private Map<String, String> getCSVMap(Collection<File> files) throws MojoExecutionException, MojoFailureException {
         Map<String, String> csvMap = new HashMap<>();
         Pattern pattern = Pattern.compile("(UB|L|IMPL|CV|USP)\\-[A-Z]{2,}[0-9]+");
-
 
         for (File f : files) {
             try {
                 CSVParser parser = CSVParser.parse(f, Charset.defaultCharset(), CSVFormat.DEFAULT);
-                parser.forEach(record -> {
+                for (CSVRecord record : parser.getRecords()) {
+                    for (String value : record) {
+                        if (value.startsWith("\"") || value.endsWith("\"")) {
+                            throw new MojoExecutionException("Line " + record.getRecordNumber() + " of " +
+                                    f.getAbsolutePath() + " contains an unmatched Quotation Mark (\")");
+                        }
+                    }
                     String errorCode = record.get(0);
                     if (pattern.matcher(errorCode).matches()) {
                         csvMap.put(errorCode.split("-")[1], record.get(1));
                     }
-                });
+                }
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage());
             }
