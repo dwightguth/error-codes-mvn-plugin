@@ -34,6 +34,9 @@ public class ErrorCodesMojo extends AbstractMojo {
     @Parameter(defaultValue = "")
     private String ignore;
 
+    @Parameter(defaultValue = "")
+    private String exclude;
+
     public void execute() throws MojoExecutionException, MojoFailureException {
         Set<String> ignoreCodes;
         if (ignore != null) {
@@ -74,7 +77,7 @@ public class ErrorCodesMojo extends AbstractMojo {
     }
 
     private Set<String> getCodesFromKFiles(File baseDir) throws MojoExecutionException {
-        Collection<File> kFiles = FileUtils.listFiles(baseDir, new String[]{"k"}, true);
+        Collection<File> kFiles = FileUtils.listFiles(baseDir, new RegexFileFilter(".*\\.k"), FileFilterUtils.notFileFilter(FileFilterUtils.nameFileFilter(exclude)));
         Pattern pattern = Pattern.compile("([A-Z]{2,}[0-9]+)\"");
         return getErrorCodesFromFiles(kFiles, pattern);
     }
