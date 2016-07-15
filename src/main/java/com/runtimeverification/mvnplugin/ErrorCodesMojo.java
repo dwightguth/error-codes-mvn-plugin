@@ -89,9 +89,11 @@ public class ErrorCodesMojo extends AbstractMojo {
         return getCSVMap(csvFiles);
     }
 
+    private static final String PREFIX_PATTERN = "(UB|CV|SE|USP|IMPL|L|URV|DRV|CND)";
+
     private Set<String> getCodesFromFiles(File baseDir) {
         Collection<File> exampleFiles = FileUtils.listFiles(baseDir,
-                new RegexFileFilter("(UB|CV|SE|USP|IMPL|L)\\-([A-Z]{2,}[0-9]+)\\-bad.*\\.c"), TrueFileFilter.INSTANCE);
+                new RegexFileFilter(PREFIX_PATTERN + "\\-([A-Z]{2,}[0-9]+)\\-bad.*\\.c"), TrueFileFilter.INSTANCE);
         return exampleFiles.stream().map(x -> {
             String s = x.toString();
             return s.substring(s.lastIndexOf("/") + 1).split("\\-bad.*\\.c")[0].split("\\-")[1];
@@ -115,7 +117,7 @@ public class ErrorCodesMojo extends AbstractMojo {
 
     private Map<String, String> getCSVMap(Collection<File> files) throws MojoExecutionException, MojoFailureException {
         Map<String, String> csvMap = new HashMap<>();
-        Pattern pattern = Pattern.compile("(UB|L|IMPL|CV|SE|USP)\\-[A-Z]{2,}[0-9]+");
+        Pattern pattern = Pattern.compile(PREFIX_PATTERN + "\\-[A-Z]{2,}[0-9]+");
 
         for (File f : files) {
             try {
