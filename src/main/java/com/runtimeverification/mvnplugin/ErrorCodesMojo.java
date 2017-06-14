@@ -30,6 +30,8 @@ public class ErrorCodesMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.basedir}" + "../")
     private File semanticsDir;
 
+    @Parameter(defaultValue = "${project.basedir}" + "../")
+    private File dataDir;
 
     @Parameter(defaultValue = "")
     private String ignore;
@@ -45,9 +47,9 @@ public class ErrorCodesMojo extends AbstractMojo {
         } else {
             ignoreCodes = new HashSet<>();
         }
-        Map<String, String> csvMap = getCodesFromCSV(semanticsDir);
+        Map<String, String> csvMap = getCodesFromCSV(dataDir);
         Set<String> codesFromKFiles = getCodesFromKFiles(semanticsDir);
-        Set<String> codesFromExamples = getCodesFromFiles(semanticsDir);
+        Set<String> codesFromExamples = getCodesFromFiles(dataDir);
         Set<String> codesFromCSV = new HashSet<>(csvMap.keySet());
         codesFromKFiles.removeAll(codesFromCSV);
         StringBuffer message = new StringBuffer("\n");
