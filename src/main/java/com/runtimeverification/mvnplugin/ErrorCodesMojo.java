@@ -98,7 +98,7 @@ public class ErrorCodesMojo extends AbstractMojo {
                 new RegexFileFilter(PREFIX_PATTERN + "\\-([A-Z]{2,}[0-9]+)\\-bad.*\\.c"), TrueFileFilter.INSTANCE);
         return exampleFiles.stream().map(x -> {
             String s = x.toString();
-            return s.substring(s.lastIndexOf("/") + 1).split("\\-bad.*\\.c")[0].split("\\-")[1];
+            return s.substring(s.lastIndexOf(File.separator) + 1).split("\\-bad.*\\.c")[0].split("\\-")[1];
         }).collect(Collectors.toSet());
     }
 
