@@ -80,7 +80,7 @@ public class ErrorCodesMojo extends AbstractMojo {
 
     private Set<String> getCodesFromKFiles(File baseDir) throws MojoExecutionException {
         Collection<File> kFiles = FileUtils.listFiles(baseDir, new RegexFileFilter(".*\\.k"), FileFilterUtils.notFileFilter(FileFilterUtils.nameFileFilter(exclude)));
-        Pattern pattern = Pattern.compile("([A-Z]{2,}[0-9]+)\"");
+        Pattern pattern = Pattern.compile("\"([A-Z]{2,}[0-9]+)\"");
         return getErrorCodesFromFiles(kFiles, pattern);
     }
 
