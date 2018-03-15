@@ -91,7 +91,7 @@ public class ErrorCodesMojo extends AbstractMojo {
         return getCSVMap(csvFiles);
     }
 
-    private static final String PREFIX_PATTERN = "(UB|CV|SE|USP|IMPL|L|URV|DRV|CND)";
+    private static final String PREFIX_PATTERN = "([A-Z]{2,})";
 
     private Set<String> getCodesFromFiles(File baseDir) {
         Collection<File> exampleFiles = FileUtils.listFiles(baseDir,
