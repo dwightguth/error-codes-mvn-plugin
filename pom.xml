@@ -42,12 +42,12 @@
     <repository>
       <id>runtime.verification</id>
       <name>Runtime Verification Repository</name>
-      <url>https://s3.amazonaws.com/repo.runtime.verification/repository/internal</url>
+      <url>s3://repo.runtime.verification/repository/internal</url>
     </repository>
     <snapshotRepository>
       <id>runtime.verification.snapshots</id>
       <name>Runtime Verification Snapshot Repository</name>
-      <url>https://s3.amazonaws.com/repo.runtime.verification/repository/snapshots</url>
+      <url>s3://repo.runtime.verification/repository/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
 
